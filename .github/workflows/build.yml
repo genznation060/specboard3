@@ -27,31 +27,37 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Generate Gradle Wrapper if missing
+        run: |
+          if [ ! -f ./gradlew ]; then
+            echo "gradlew missing – generating wrapper..."
+            gradle wrapper --gradle-version 9.3.1
+            chmod +x gradlew
+          else
+            echo "gradlew already present"
+            chmod +x gradlew
+          fi
+
       - name: Generate debug keystore if missing
         run: |
           if [ ! -f debug.keystore ]; then
             echo "Generating debug.keystore for CI..."
-            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            keytool -genkey -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
           else
             echo "debug.keystore already present"
           fi
 
       - name: Build debug APK
-        run: |
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew :app:assembleDebug --stacktrace
-          else
-            gradle :app:assembleDebug --stacktrace
-          fi
+        run: ./gradlew :app:assembleDebug --stacktrace
 
       - name: Run unit tests
-        run: |
-          if [ -f ./gradlew ]; then
-            ./gradlew :app:testDebugUnitTest --stacktrace
-          else
-            gradle :app:testDebugUnitTest --stacktrace
-          fi
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
